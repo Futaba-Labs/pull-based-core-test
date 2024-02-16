@@ -1,10 +1,10 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import FUTABA_ABI from "./constants/futaba.abi.json";
 import LZ_ABI from "./constants/layerzero.abi.json";
-import { defaultAbiCoder, formatEther, hexZeroPad, solidityPack, toUtf8Bytes } from 'ethers/lib/utils';
+import { defaultAbiCoder, formatEther, hexZeroPad, parseEther, solidityPack, toUtf8Bytes } from 'ethers/lib/utils';
 import fetch from 'node-fetch';
 
 async function main() {
@@ -15,6 +15,17 @@ async function main() {
   const privateKey = process.env.PRIVATE_KEY || "";
   const walletMainnet = new ethers.Wallet(privateKey, providerMainnet);
   const walletSepolia = new ethers.Wallet(privateKey, providerSepolia);
+
+  const coinmarketcapApiKey = process.env.COINMARKETCAP_API_KEY || "";
+  const res = await fetch(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=ETH`, {
+    headers: {
+      'X-CMC_PRO_API_KEY': coinmarketcapApiKey
+    }
+
+  })
+  const data = await res.json()
+  const usdPrice = data.data.ETH.quote.USD.price
+  console.log(`ETH Price: ${usdPrice} USD`)
 
   // Futaba (Arbitrum Sepolia)
   const futabaAddress = "0x00EF9F95500621f08C25587106d4D362b9db9225"
@@ -28,13 +39,10 @@ async function main() {
     }]
 
   const futabaFee = await futaba.estimateFee(futabaLcAddress, queries)
-  console.log(`Futaba Fee: ${formatEther(futabaFee)} ETH`)
+  const futabaFeeWithoutProtocolFee = futabaFee.sub(parseEther("0.001"))
+  console.log(`Futaba Fee (without protocol fee): ${formatEther(futabaFee)} ETH (${parseFloat(formatEther(futabaFeeWithoutProtocolFee)) * parseFloat(usdPrice)} USD)`)
 
-  // Orbiter
-  const api = "https://api.orbiter.finance/sdk/routers/simulation/receiveAmount?line=10/42161-ETH/ETH&value=10000000000000009002"
-  const response = await fetch(api)
-  const data = await response.json()
-  console.log(data)
+  // TODO Bridge (Arbitrum -> Optimism)
 
   // LZ (Arbitrum -> Ethereum)
   const lzAddress = "0x3c2269811836af69497E5F486A85D7316753cf62"
@@ -53,7 +61,12 @@ async function main() {
     false,                 // _payInZRO
     "0x"                   // default '0x' adapterParams, see: Relayer Adapter Param docs
   )
-  console.log(`LZ Fee: ${formatEther(fees.nativeFee)} ETH`)
+  console.log(`LZ Fee: ${formatEther(fees.nativeFee)} ETH (${parseFloat(formatEther(fees.nativeFee)) * parseFloat(usdPrice)} USD)`)
+
+  const batchSize = 40
+  console.log(`Batch Size: ${batchSize}`)
+  const batchFee = formatEther(futabaFeeWithoutProtocolFee.add(fees.nativeFee.div(BigNumber.from(batchSize))))
+  console.log(`Total Fee: ${batchFee} ETH (${parseFloat(batchFee) * parseFloat(usdPrice)} USD)`)
 }
 
 main().catch((error) => {

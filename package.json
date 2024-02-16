@@ -10,6 +10,7 @@
     "@openzeppelin/contracts": "^5.0.1"
   },
   "devDependencies": {
+    "@0xsquid/sdk": "^2.8.10",
     "@prb/test": "^0.6.4",
     "@types/node": "^20.11.17",
     "@types/node-fetch": "^2.6.11",
