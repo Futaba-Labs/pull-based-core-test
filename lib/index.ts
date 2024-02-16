@@ -25,9 +25,10 @@ async function main() {
   })
   const data = await res.json()
   const usdPrice = data.data.ETH.quote.USD.price
-  console.log(`ETH Price: ${usdPrice} USD`)
+  console.log(`ETH Price: ${usdPrice} USD\n`)
 
   // Futaba (Arbitrum Sepolia)
+  console.log("Calculating Futaba Fee for batching... (Arbitrum Sepolia -> Ethereum Sepolia)")
   const futabaAddress = "0x00EF9F95500621f08C25587106d4D362b9db9225"
   const futabaLcAddress = "0x997ae35162766C4aF4623EEa4faB6F484bC4593c"
   const futaba = new ethers.Contract(futabaAddress, FUTABA_ABI, walletSepolia);
@@ -40,11 +41,14 @@ async function main() {
 
   const futabaFee = await futaba.estimateFee(futabaLcAddress, queries)
   const futabaFeeWithoutProtocolFee = futabaFee.sub(parseEther("0.001"))
-  console.log(`Futaba Fee (without 0.001 ETH protocol fee): ${formatEther(futabaFee)} ETH (${parseFloat(formatEther(futabaFeeWithoutProtocolFee)) * parseFloat(usdPrice)} USD)`)
+  console.log(`Futaba Fee (without 0.001 ETH protocol fee): ${formatEther(futabaFee)} ETH (${parseFloat(formatEther(futabaFeeWithoutProtocolFee)) * parseFloat(usdPrice)} USD)\n`)
 
   // TODO Bridge (Arbitrum -> Optimism)
+  console.log("Calculating Bridge Fee for batching... (Arbitrum -> Optimism)")
+  console.log("Skipped (not implemented)\n")
 
   // LZ (Arbitrum -> Ethereum)
+  console.log("Calculating LZ Fee for batching... (Arbitrum -> Ethereum)")
   const lzAddress = "0x3c2269811836af69497E5F486A85D7316753cf62"
   const messages = []
   for (let i = 0; i < 10; i++) {
@@ -61,7 +65,7 @@ async function main() {
     false,                 // _payInZRO
     "0x"                   // default '0x' adapterParams, see: Relayer Adapter Param docs
   )
-  console.log(`LZ Fee: ${formatEther(fees.nativeFee)} ETH (${parseFloat(formatEther(fees.nativeFee)) * parseFloat(usdPrice)} USD)`)
+  console.log(`LZ Fee: ${formatEther(fees.nativeFee)} ETH (${parseFloat(formatEther(fees.nativeFee)) * parseFloat(usdPrice)} USD)\n`)
 
   const batchSize = 40
   console.log(`Batch Size: ${batchSize}`)
