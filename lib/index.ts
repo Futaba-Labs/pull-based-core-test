@@ -40,7 +40,7 @@ async function main() {
 
   const futabaFee = await futaba.estimateFee(futabaLcAddress, queries)
   const futabaFeeWithoutProtocolFee = futabaFee.sub(parseEther("0.001"))
-  console.log(`Futaba Fee (without protocol fee): ${formatEther(futabaFee)} ETH (${parseFloat(formatEther(futabaFeeWithoutProtocolFee)) * parseFloat(usdPrice)} USD)`)
+  console.log(`Futaba Fee (without 0.001 ETH protocol fee): ${formatEther(futabaFee)} ETH (${parseFloat(formatEther(futabaFeeWithoutProtocolFee)) * parseFloat(usdPrice)} USD)`)
 
   // TODO Bridge (Arbitrum -> Optimism)
 
