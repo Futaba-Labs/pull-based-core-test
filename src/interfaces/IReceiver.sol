@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.8.23;
+pragma solidity 0.8.19;
 
 import { QueryType } from "../QueryType.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -15,5 +15,6 @@ interface IReceiver is IERC165 {
         QueryType.QueryRequest[] memory queries,
         bytes memory message
     )
-        external;
+        external
+        payable;
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.19;
 
 import { QueryType } from "../QueryType.sol";
 
@@ -24,6 +24,4 @@ interface IGateway {
     )
         external
         payable;
-
-    function getCache(QueryType.QueryRequest[] memory queries) external view returns (bytes[] memory);
 }

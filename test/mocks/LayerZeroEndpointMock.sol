@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-interface ILayerZeroEndpoint {
+import { ILayerZeroEndpoint } from "../../src/interfaces/ILayerZeroEndpoint.sol";
+
+contract LayerZeroEndpointMock is ILayerZeroEndpoint {
     function send(
         uint16 _dstChainId,
         bytes calldata _destination,
@@ -11,5 +13,6 @@ interface ILayerZeroEndpoint {
         bytes calldata _adapterParams
     )
         external
-        payable;
+        payable
+    { }
 }

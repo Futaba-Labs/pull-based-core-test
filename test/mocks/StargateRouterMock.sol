@@ -1,18 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-interface IStargateRouter {
-    struct lzTxObj {
-        uint256 dstGasForCall;
-        uint256 dstNativeAmount;
-        bytes dstNativeAddr;
-    }
+import { IStargateRouter } from "../../src/interfaces/IStargateRouter.sol";
 
-    struct SwapAmount {
-        uint256 amountLD; // the amount, in Local Decimals, to be swapped
-        uint256 minAmountLD; // the minimum amount accepted out on destination
-    }
-
+contract StargateRouterMock is IStargateRouter {
     function quoteLayerZeroFee(
         uint16 _dstChainId,
         uint8 _functionType,
@@ -22,7 +13,10 @@ interface IStargateRouter {
     )
         external
         view
-        returns (uint256, uint256);
+        returns (uint256, uint256)
+    {
+        return (100, 1);
+    }
 
     function swapETHAndCall(
         uint16 _dstChainId, // destination Stargate chainId
@@ -33,5 +27,6 @@ interface IStargateRouter {
         bytes calldata _payload // the payload to send to the destination
     )
         external
-        payable;
+        payable
+    { }
 }

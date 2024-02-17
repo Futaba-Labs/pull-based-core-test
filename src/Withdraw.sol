@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.8.23;
+pragma solidity 0.8.19;
 
 import { ILayerZeroEndpoint } from "./interfaces/ILayerZeroEndpoint.sol";
 import { IReceiver } from "./interfaces/IReceiver.sol";
 import { IGateway } from "./interfaces/IGateway.sol";
 import { IStargateRouter } from "./interfaces/IStargateRouter.sol";
 import { QueryType } from "./QueryType.sol";
-import { IWETH } from "./interfaces/IWETH.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Withdraw is IReceiver {
     uint256 public constant SEPOLIA_CHAIN_ID = 11_155_111;
@@ -19,7 +17,7 @@ contract Withdraw is IReceiver {
     address public deposit;
     address public nativeWrap;
 
-    uint256 private _nonce;
+    uint256 private _nonce = 1;
 
     enum BridgeStatus {
         PeindingQuery,
@@ -73,6 +71,7 @@ contract Withdraw is IReceiver {
         uint256 _futabaFee
     )
         external
+        payable
     {
         // query the deposit contract
         QueryType.QueryRequest[] memory queries = new QueryType.QueryRequest[](1);
@@ -95,6 +94,7 @@ contract Withdraw is IReceiver {
         bytes memory message
     )
         public
+        payable
     {
         // check the deposit state
         bytes32 id = abi.decode(message, (bytes32));
@@ -144,6 +144,18 @@ contract Withdraw is IReceiver {
         return IStargateRouter(stargateRouter).quoteLayerZeroFee(
             dstChainId, 1, toAddress, bytes(""), IStargateRouter.lzTxObj(0, 0, "0x")
         );
+    }
+
+    function getNonce() external view returns (uint256) {
+        return _nonce;
+    }
+
+    function getBridge(bytes32 _id) external view returns (Bridge memory) {
+        return bridges[_id];
+    }
+
+    function getBatches() external view returns (bytes32[] memory) {
+        return batches;
     }
 
     function _sendMessage() internal returns (bytes memory) {
