@@ -25,7 +25,6 @@ contract WithdrawTest is PRBTest, StdCheats {
     StargateRouterMock public stargateRouter;
     Deposit public deposit;
     address public lightClient = address(this);
-    address public nativeWrap = address(this);
 
     function setUp() public virtual {
         // Instantiate the contract-under-test.
@@ -35,12 +34,7 @@ contract WithdrawTest is PRBTest, StdCheats {
         stargateRouter = new StargateRouterMock();
 
         withdraw = new Withdraw(
-            address(lzEndpoint),
-            address(futabaGateway),
-            address(deposit),
-            lightClient,
-            address(stargateRouter),
-            nativeWrap
+            address(lzEndpoint), address(futabaGateway), address(deposit), lightClient, address(stargateRouter)
         );
     }
 

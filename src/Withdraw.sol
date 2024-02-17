@@ -15,7 +15,6 @@ contract Withdraw is IReceiver {
     address public futabaEndpoint;
     address public lightClient;
     address public deposit;
-    address public nativeWrap;
 
     uint256 private _nonce = 1;
 
@@ -47,15 +46,13 @@ contract Withdraw is IReceiver {
         address _futabaEndpoint,
         address _deposit,
         address _lightClient,
-        address _stargateRouter,
-        address _nativeWrap
+        address _stargateRouter
     ) {
         lzEndpoint = _lzEndpoint;
         futabaEndpoint = _futabaEndpoint;
         deposit = _deposit;
         lightClient = _lightClient;
         stargateRouter = _stargateRouter;
-        nativeWrap = _nativeWrap;
     }
 
     event Bridged(address indexed user, uint256 amount);
@@ -109,10 +106,10 @@ contract Withdraw is IReceiver {
         }
 
         // query stargate fee
-        (uint256 fee, uint256 poolId) = quoteLayerZeroFee(dstChainId, sender);
+        (uint256 fee, uint256 poolId) = quoteStaragteFee(dstChainId, sender);
 
         // swap use stargate
-        _swap(amount, sender, fee);
+        _swap(dstChainId, amount, sender, fee);
 
         // update the bridge status
         bridge.status = BridgeStatus.Bridged;
@@ -122,7 +119,7 @@ contract Withdraw is IReceiver {
         emit Bridged(sender, amount);
     }
 
-    function batchToL1() external {
+    function batchToL1() external payable {
         // send message to L1 using LayerZero
         bytes memory callData = _sendMessage();
 
@@ -138,12 +135,19 @@ contract Withdraw is IReceiver {
         emit BatchToL1(callData);
     }
 
-    function quoteLayerZeroFee(uint16 dstChainId, address to) public view returns (uint256, uint256) {
+    function quoteStaragteFee(uint16 dstChainId, address to) public view returns (uint256, uint256) {
         bytes memory toAddress = abi.encodePacked(to);
 
         return IStargateRouter(stargateRouter).quoteLayerZeroFee(
             dstChainId, 1, toAddress, bytes(""), IStargateRouter.lzTxObj(0, 0, "0x")
         );
+    }
+
+    function estimateLzFee() public view returns (uint256) {
+        (uint256 nativeFee, uint256 zroFee) =
+            ILayerZeroEndpoint(lzEndpoint).estimateFees(SEPOLIA_DOMAIN, address(this), bytes(""), false, bytes(""));
+
+        return nativeFee;
     }
 
     function getNonce() external view returns (uint256) {
@@ -156,6 +160,42 @@ contract Withdraw is IReceiver {
 
     function getBatches() external view returns (bytes32[] memory) {
         return batches;
+    }
+
+    function estimateLzfeeTest() external view returns (uint256) {
+        DepositUpdateParam[] memory params = new DepositUpdateParam[](1);
+
+        params[0] = DepositUpdateParam(msg.sender, 0.01 ether);
+
+        bytes memory callData = abi.encode(params);
+
+        (uint256 nativeFee, uint256 zroFee) =
+            ILayerZeroEndpoint(lzEndpoint).estimateFees(SEPOLIA_DOMAIN, address(this), callData, false, bytes(""));
+
+        return nativeFee;
+    }
+
+    function sendToL1() external payable {
+        bytes memory trustedRemote = abi.encodePacked(deposit, address(this));
+
+        DepositUpdateParam[] memory params = new DepositUpdateParam[](1);
+
+        params[0] = DepositUpdateParam(msg.sender, 0.01 ether);
+
+        bytes memory callData = abi.encode(params);
+
+        ILayerZeroEndpoint(lzEndpoint).send{ value: msg.value }(
+            SEPOLIA_DOMAIN, // destination LayerZero chainId
+            trustedRemote, // send to this address on the destination
+            callData, // bytes payload
+            payable(address(this)), // refund address
+            address(0x0), // future parameter
+            bytes("") // adapterParams (see "Advanced Features")
+        );
+    }
+
+    function bridge(uint16 _dstchainId, uint256 _amount, address _to, uint256 _fee) external payable {
+        _swap(_dstchainId, _amount, _to, _fee);
     }
 
     function _sendMessage() internal returns (bytes memory) {
@@ -176,11 +216,11 @@ contract Withdraw is IReceiver {
         return callData;
     }
 
-    function _swap(uint256 _amount, address _to, uint256 _fee) internal {
+    function _swap(uint16 _dstchainId, uint256 _amount, address _to, uint256 _fee) internal {
         bytes memory to = abi.encodePacked(_to);
 
         IStargateRouter(stargateRouter).swapETHAndCall{ value: _amount + _fee }(
-            SEPOLIA_DOMAIN,
+            _dstchainId,
             payable(address(this)),
             to,
             IStargateRouter.SwapAmount(_amount, 0),

@@ -15,4 +15,18 @@ contract LayerZeroEndpointMock is ILayerZeroEndpoint {
         external
         payable
     { }
+
+    function estimateFees(
+        uint16 _dstChainId,
+        address _userApplication,
+        bytes calldata _payload,
+        bool _payInZRO,
+        bytes calldata _adapterParam
+    )
+        external
+        view
+        returns (uint256 nativeFee, uint256 zroFee)
+    {
+        return (100, 0);
+    }
 }
