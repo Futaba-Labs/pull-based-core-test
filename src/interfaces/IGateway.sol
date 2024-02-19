@@ -24,4 +24,12 @@ interface IGateway {
     )
         external
         payable;
+
+    function estimateFee(
+        address lightClient,
+        QueryType.QueryRequest[] memory queries
+    )
+        external
+        view
+        returns (uint256);
 }

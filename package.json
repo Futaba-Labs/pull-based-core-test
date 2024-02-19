@@ -42,6 +42,7 @@
     "test:coverage": "forge coverage",
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
     "estimate-fee": "tsc && node lib/dist/index.js",
-    "send-message": "forge script script/SendMessage.s.sol --rpc-url arbitrum_sepolia --broadcast --verify -vvvv"
+    "send-message": "forge script script/SendMessage.s.sol --rpc-url arbitrum_sepolia --broadcast --verify -vvvv",
+    "withdraw": "forge script script/RequestWithdraw.s.sol --rpc-url arbitrum_sepolia --broadcast --verify -vvvv"
   }
 }

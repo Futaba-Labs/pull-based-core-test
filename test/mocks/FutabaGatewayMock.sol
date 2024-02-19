@@ -59,4 +59,15 @@ contract FutabaGatewayMock is IGateway {
     function getNonce() external view returns (uint256) {
         return _nonce;
     }
+
+    function estimateFee(
+        address lightClient,
+        QueryType.QueryRequest[] memory queries
+    )
+        external
+        view
+        returns (uint256)
+    {
+        return 100_000;
+    }
 }
