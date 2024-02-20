@@ -162,11 +162,7 @@ contract Withdraw is IReceiver {
         return batches;
     }
 
-    function estimateLzfeeTest() external view returns (uint256) {
-        DepositUpdateParam[] memory params = new DepositUpdateParam[](1);
-
-        params[0] = DepositUpdateParam(msg.sender, 0.01 ether);
-
+    function estimateLzfeeTest(DepositUpdateParam[] memory params) external view returns (uint256) {
         bytes memory callData = abi.encode(params);
 
         (uint256 nativeFee, uint256 zroFee) =
@@ -175,12 +171,8 @@ contract Withdraw is IReceiver {
         return nativeFee;
     }
 
-    function sendToL1() external payable {
+    function sendToL1(DepositUpdateParam[] memory params) external payable {
         bytes memory trustedRemote = abi.encodePacked(deposit, address(this));
-
-        DepositUpdateParam[] memory params = new DepositUpdateParam[](1);
-
-        params[0] = DepositUpdateParam(msg.sender, 0.01 ether);
 
         bytes memory callData = abi.encode(params);
 

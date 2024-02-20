@@ -6,8 +6,24 @@ import FUTABA_ABI from "./constants/futaba.abi.json";
 import LZ_ABI from "./constants/layerzero.abi.json";
 import { defaultAbiCoder, formatEther, hexZeroPad, parseEther, solidityPack, toUtf8Bytes } from 'ethers/lib/utils';
 import fetch from 'node-fetch';
+import { parse } from "ts-command-line-args";
+
+
+type EstimateFeeParam = {
+  "message-size": number;
+}
 
 async function main() {
+  const args = parse<EstimateFeeParam>({
+    "message-size": {
+      type: Number,
+      description: "The number of messages to be sent in a batch",
+      alias: "m",
+      defaultValue: 40
+    }
+  });
+
+
   const rpcMainnet = `https://arbitrum-mainnet.infura.io/v3/${process.env.API_KEY_INFURA}`
   const rpcSepolia = `https://arbitrum-sepolia.infura.io/v3/${process.env.API_KEY_INFURA}`
   const providerMainnet = new ethers.providers.JsonRpcProvider(rpcMainnet);
@@ -51,11 +67,18 @@ async function main() {
   console.log("Calculating LZ Fee for batching... (Arbitrum -> Ethereum)")
   const lzAddress = "0x3c2269811836af69497E5F486A85D7316753cf62"
   const messages = []
-  for (let i = 0; i < 10; i++) {
-    messages.push("Hello, World!")
+  const messageSize = args['message-size']
+  for (let i = 0; i < messageSize; i++) {
+    messages.push({
+      user: lzAddress,
+      amount: parseEther("0.001"),
+    })
   }
-  console.log(`Messages size: ${messages.length}`)
-  const payload = solidityPack(["string[]"], [messages])
+  console.log(`Messages size: ${messageSize}`)
+
+  // encode messages
+  const payload = defaultAbiCoder.encode(["tuple(address user, uint256 amount)[]"], [messages])
+  // const payload = solidityPack(["string[]"], [messages])
 
   const lz = new ethers.Contract(lzAddress, LZ_ABI, walletMainnet);
   const fees = await lz.estimateFees(
@@ -67,10 +90,11 @@ async function main() {
   )
   console.log(`LZ Fee: ${formatEther(fees.nativeFee)} ETH (${parseFloat(formatEther(fees.nativeFee)) * parseFloat(usdPrice)} USD)\n`)
 
-  const batchSize = 40
-  console.log(`Batch Size: ${batchSize}`)
-  const batchFee = formatEther(futabaFeeWithoutProtocolFee.add(fees.nativeFee.div(BigNumber.from(batchSize))))
-  console.log(`Total Fee: ${batchFee} ETH (${parseFloat(batchFee) * parseFloat(usdPrice)} USD)`)
+  const batchSize = messageSize
+  const batchFee = fees.nativeFee.div(BigNumber.from(batchSize))
+  console.log(`Batch Fee: ${formatEther(batchFee)} ETH (${parseFloat(formatEther(batchFee)) * parseFloat(usdPrice)} USD)\n`)
+  const totalFee = formatEther(futabaFeeWithoutProtocolFee.add(batchFee))
+  console.log(`Total Fee: ${totalFee} ETH (${parseFloat(totalFee) * parseFloat(usdPrice)} USD)`)
 }
 
 main().catch((error) => {
