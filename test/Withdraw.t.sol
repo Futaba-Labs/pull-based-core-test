@@ -6,9 +6,10 @@ import { console2 } from "forge-std/src/console2.sol";
 import { StdCheats } from "forge-std/src/StdCheats.sol";
 
 import { Withdraw } from "../src/Withdraw.sol";
-import { Deposit } from "../src/Deposit.sol";
+import { DepositMock } from "./mocks/DepositMock.sol";
 import { FutabaGatewayMock } from "./mocks/FutabaGatewayMock.sol";
-import { LayerZeroEndpointMock } from "./mocks/LayerZeroEndpointMock.sol";
+import { AxelarGatewayMock } from "./mocks/AxelarGatewayMock.sol";
+import { AxelarGasServiceMock } from "./mocks/AxelarGasServiceMock.sol";
 import { StargateRouterMock } from "./mocks/StargateRouterMock.sol";
 
 contract WithdrawTest is PRBTest, StdCheats {
@@ -21,20 +22,27 @@ contract WithdrawTest is PRBTest, StdCheats {
 
     Withdraw public withdraw;
     FutabaGatewayMock public futabaGateway;
-    LayerZeroEndpointMock public lzEndpoint;
+    AxelarGatewayMock public axelarGateway;
+    AxelarGasServiceMock public axelarGasService;
     StargateRouterMock public stargateRouter;
-    Deposit public deposit;
+    DepositMock public deposit;
     address public lightClient = address(this);
 
     function setUp() public virtual {
         // Instantiate the contract-under-test.
-        deposit = new Deposit();
+        deposit = new DepositMock(lightClient);
         futabaGateway = new FutabaGatewayMock();
-        lzEndpoint = new LayerZeroEndpointMock();
+        axelarGateway = new AxelarGatewayMock();
+        axelarGasService = new AxelarGasServiceMock();
         stargateRouter = new StargateRouterMock();
 
         withdraw = new Withdraw(
-            address(lzEndpoint), address(futabaGateway), address(deposit), lightClient, address(stargateRouter)
+            address(axelarGateway),
+            address(axelarGasService),
+            address(futabaGateway),
+            address(deposit),
+            lightClient,
+            address(stargateRouter)
         );
     }
 

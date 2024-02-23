@@ -7,6 +7,7 @@ import LZ_ABI from "./constants/layerzero.abi.json";
 import { defaultAbiCoder, formatEther, hexZeroPad, parseEther, solidityPack, toUtf8Bytes } from 'ethers/lib/utils';
 import fetch from 'node-fetch';
 import { parse } from "ts-command-line-args";
+import { AxelarQueryAPI, CHAINS, Environment, GasToken } from '@axelar-network/axelarjs-sdk';
 
 
 type EstimateFeeParam = {
@@ -88,7 +89,19 @@ async function main() {
     false,                 // _payInZRO
     "0x"                   // default '0x' adapterParams, see: Relayer Adapter Param docs
   )
-  console.log(`LZ Fee: ${formatEther(fees.nativeFee)} ETH (${parseFloat(formatEther(fees.nativeFee)) * parseFloat(usdPrice)} USD)\n`)
+
+  const sdk = new AxelarQueryAPI({
+    environment: Environment.MAINNET,
+  });
+
+  const fee = await sdk.estimateGasFee(
+    CHAINS.MAINNET.ARBITRUM,
+    CHAINS.MAINNET.ETHEREUM,
+    GasToken.ETH,
+    500000
+  );
+
+  console.log(`Axelar Fee: ${formatEther(fee.toString())} ETH (${parseFloat(formatEther(fee.toString())) * parseFloat(usdPrice)} USD)\n`)
 
   const batchSize = messageSize
   const batchFee = fees.nativeFee.div(BigNumber.from(batchSize))

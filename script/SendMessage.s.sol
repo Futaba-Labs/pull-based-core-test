@@ -21,8 +21,8 @@ contract SendMessage is BaseScript {
             params[i] = Withdraw.DepositUpdateParam(to, amount);
         }
         // estimate lz fee
-        uint256 lzFee = withdraw.estimateLzfeeTest(params);
-        withdraw.sendToL1{ value: lzFee }(params);
+        // uint256 lzFee = withdraw.estimateLzfeeTest(params);
+        // withdraw.sendToL1{ value: lzFee }(params);
 
         // estimate staragte fee
         // (uint256 fee, uint256 poolId) = withdraw.quoteStaragteFee(dstChainId, to);

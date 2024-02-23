@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ILayerZeroEndpoint } from "./interfaces/ILayerZeroEndpoint.sol";
 import { IReceiver } from "./interfaces/IReceiver.sol";
 import { IGateway } from "./interfaces/IGateway.sol";
 import { IStargateRouter } from "./interfaces/IStargateRouter.sol";
 import { QueryType } from "./QueryType.sol";
+import { AxelarExecutable } from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
+import { IAxelarGasService } from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
+import { IAxelarGateway } from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
-contract Withdraw is IReceiver {
+contract Withdraw is IReceiver, AxelarExecutable {
     uint256 public constant SEPOLIA_CHAIN_ID = 11_155_111;
-    uint16 public constant SEPOLIA_DOMAIN = 10_161;
-    address public lzEndpoint;
+    string SEPOLIA_DOMAIN = "ethereum-sepolia";
+    address public axelarGasService;
     address public stargateRouter;
     address public futabaEndpoint;
     address public lightClient;
@@ -42,13 +45,16 @@ contract Withdraw is IReceiver {
     }
 
     constructor(
-        address _lzEndpoint,
+        address _axelerGateway,
+        address _axealrGasService,
         address _futabaEndpoint,
         address _deposit,
         address _lightClient,
         address _stargateRouter
-    ) {
-        lzEndpoint = _lzEndpoint;
+    )
+        AxelarExecutable(_axelerGateway)
+    {
+        axelarGasService = _axealrGasService;
         futabaEndpoint = _futabaEndpoint;
         deposit = _deposit;
         lightClient = _lightClient;
@@ -143,13 +149,6 @@ contract Withdraw is IReceiver {
         );
     }
 
-    function estimateLzFee() public view returns (uint256) {
-        (uint256 nativeFee, uint256 zroFee) =
-            ILayerZeroEndpoint(lzEndpoint).estimateFees(SEPOLIA_DOMAIN, address(this), bytes(""), false, bytes(""));
-
-        return nativeFee;
-    }
-
     function getNonce() external view returns (uint256) {
         return _nonce;
     }
@@ -162,28 +161,14 @@ contract Withdraw is IReceiver {
         return batches;
     }
 
-    function estimateLzfeeTest(DepositUpdateParam[] memory params) external view returns (uint256) {
-        bytes memory callData = abi.encode(params);
-
-        (uint256 nativeFee, uint256 zroFee) =
-            ILayerZeroEndpoint(lzEndpoint).estimateFees(SEPOLIA_DOMAIN, address(this), callData, false, bytes(""));
-
-        return nativeFee;
-    }
-
     function sendToL1(DepositUpdateParam[] memory params) external payable {
-        bytes memory trustedRemote = abi.encodePacked(deposit, address(this));
-
         bytes memory callData = abi.encode(params);
+        string memory destinationAddress = addressToString(deposit);
 
-        ILayerZeroEndpoint(lzEndpoint).send{ value: msg.value }(
-            SEPOLIA_DOMAIN, // destination LayerZero chainId
-            trustedRemote, // send to this address on the destination
-            callData, // bytes payload
-            payable(address(this)), // refund address
-            address(0x0), // future parameter
-            bytes("") // adapterParams (see "Advanced Features")
+        IAxelarGasService(axelarGasService).payNativeGasForContractCall{ value: msg.value }(
+            address(this), SEPOLIA_DOMAIN, destinationAddress, callData, msg.sender
         );
+        gateway.callContract(SEPOLIA_DOMAIN, destinationAddress, callData);
     }
 
     function bridge(uint16 _dstchainId, uint256 _amount, address _to, uint256 _fee) external payable {
@@ -191,19 +176,13 @@ contract Withdraw is IReceiver {
     }
 
     function _sendMessage() internal returns (bytes memory) {
-        // send message to L1 using LayerZero
-        bytes memory trustedRemote = abi.encodePacked(deposit, address(this));
-
         bytes memory callData = abi.encodePacked(batches);
+        string memory destinationAddress = addressToString(deposit);
 
-        ILayerZeroEndpoint(lzEndpoint).send{ value: msg.value }(
-            SEPOLIA_DOMAIN, // destination LayerZero chainId
-            trustedRemote, // send to this address on the destination
-            callData, // bytes payload
-            payable(address(this)), // refund address
-            address(0x0), // future parameter
-            bytes("") // adapterParams (see "Advanced Features")
+        IAxelarGasService(axelarGasService).payNativeGasForContractCall{ value: msg.value }(
+            address(this), SEPOLIA_DOMAIN, destinationAddress, callData, msg.sender
         );
+        gateway.callContract(SEPOLIA_DOMAIN, destinationAddress, callData);
 
         return callData;
     }
@@ -223,5 +202,9 @@ contract Withdraw is IReceiver {
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
         return interfaceId == type(IReceiver).interfaceId;
+    }
+
+    function addressToString(address _addr) internal pure returns (string memory) {
+        return Strings.toHexString(uint160(_addr), 20);
     }
 }

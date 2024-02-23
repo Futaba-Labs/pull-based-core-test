@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ILayerZeroReceiver } from "./interfaces/ILayerZeroReceiver.sol";
+import { AxelarExecutable } from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
 
-contract Deposit is ILayerZeroReceiver {
+contract Deposit is AxelarExecutable {
     mapping(address user => uint256 balance) public balances;
 
     struct DepositUpdateParam {
@@ -14,6 +14,8 @@ contract Deposit is ILayerZeroReceiver {
     event DepositUpdate(DepositUpdateParam param);
     event Deposited(address indexed user, uint256 amount);
 
+    constructor(address gateway_) AxelarExecutable(gateway_) { }
+
     function deposit(uint256 _amount) external payable {
         // Update the balance
         balances[msg.sender] += _amount;
@@ -22,17 +24,17 @@ contract Deposit is ILayerZeroReceiver {
         emit Deposited(msg.sender, _amount);
     }
 
-    /// @dev Simple code, so no access control
-    function lzReceive(
-        uint16 _srcChainId,
-        bytes calldata _srcAddress,
-        uint64 _nonce,
-        bytes calldata _payload
+    function _execute(
+        string calldata sourceChain_,
+        string calldata sourceAddress_,
+        bytes calldata payload_
     )
-        external
+        internal
+        virtual
+        override
     {
         // Decode the payload
-        DepositUpdateParam[] memory params = abi.decode(_payload, (DepositUpdateParam[]));
+        DepositUpdateParam[] memory params = abi.decode(payload_, (DepositUpdateParam[]));
         uint256 len = params.length;
 
         for (uint256 i = 0; i < len; i++) {
