@@ -91,12 +91,14 @@ async function main() {
   )
 
   const sdk = new AxelarQueryAPI({
-    environment: Environment.MAINNET,
+    environment: Environment.TESTNET,
   });
 
+  console.log(await sdk.getActiveChains())
+
   const fee = await sdk.estimateGasFee(
-    CHAINS.MAINNET.ARBITRUM,
-    CHAINS.MAINNET.ETHEREUM,
+    "arbitrum-sepolia",
+    "optimism-sepolia",
     GasToken.ETH,
     500000
   );

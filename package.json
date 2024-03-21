@@ -13,9 +13,11 @@
     "@0xsquid/sdk": "^2.8.10",
     "@axelar-network/axelar-gmp-sdk-solidity": "^5.6.4",
     "@axelar-network/axelarjs-sdk": "^0.14.1",
+    "@gelatonetwork/relay-sdk": "^4.0.0",
     "@prb/test": "^0.6.4",
     "@types/node": "^20.11.17",
     "@types/node-fetch": "^2.6.11",
+    "@uniswap/permit2-sdk": "^1.2.0",
     "dotenv": "^16.4.4",
     "ethers": "5.7.2",
     "forge-std": "github:foundry-rs/forge-std#v1.7.5",
@@ -45,6 +47,7 @@
     "test:coverage": "forge coverage",
     "test:coverage:report": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
     "estimate-fee": "tsc && node lib/dist/index.js",
+    "relay": "tsc && node lib/dist/relay.js",
     "send-message": "forge script script/SendMessage.s.sol --rpc-url arbitrum_sepolia --broadcast --verify -vvvv",
     "withdraw": "forge script script/RequestWithdraw.s.sol --rpc-url arbitrum_sepolia --broadcast --verify -vvvv"
   }

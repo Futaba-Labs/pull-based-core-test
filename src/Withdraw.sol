@@ -25,10 +25,12 @@ contract Withdraw is IReceiver, AxelarExecutable {
         PeindingQuery,
         Bridged,
         Batched,
-        Finalized
+        Finalized,
+        Error
     }
 
-    mapping(bytes32 id => Bridge bridges) public bridges;
+    mapping(bytes32 id => Bridge bridge) public bridges;
+    mapping(address user => uint256 balance) public nonFinalizedBalances;
 
     bytes32[] batches;
 
@@ -85,9 +87,10 @@ contract Withdraw is IReceiver, AxelarExecutable {
         IGateway(futabaEndpoint).query{ value: _futabaFee }(queries, lightClient, address(this), abi.encodePacked(id));
 
         // store the bridge data
-        Bridge memory bridge = Bridge(msg.sender, _dstChainId, _amount, BridgeStatus.PeindingQuery);
-        bridges[id] = bridge;
-        _nonce++;
+        Bridge memory b = Bridge(msg.sender, _dstChainId, _amount, BridgeStatus.PeindingQuery);
+        bridges[id] = b;
+        nonFinalizedBalances[msg.sender] += _amount;
+        ++_nonce;
     }
 
     function receiveQuery(
@@ -132,7 +135,8 @@ contract Withdraw is IReceiver, AxelarExecutable {
         // update the bridge status
         uint256 len = batches.length;
         for (uint256 i; i < len; i++) {
-            bridges[batches[i]].status = BridgeStatus.Batched;
+            Bridge memory b = bridges[batches[i]];
+            b.status = BridgeStatus.Batched;
         }
 
         // empty the batches
@@ -176,6 +180,12 @@ contract Withdraw is IReceiver, AxelarExecutable {
     }
 
     function _sendMessage() internal returns (bytes memory) {
+        uint256 len = batches.length;
+        DepositUpdateParam[] memory params = new DepositUpdateParam[](len);
+        for (uint256 i; i < len; i++) {
+            Bridge memory b = bridges[batches[i]];
+            params[i] = DepositUpdateParam(b.user, b.amount);
+        }
         bytes memory callData = abi.encodePacked(batches);
         string memory destinationAddress = addressToString(deposit);
 
